@@ -8,7 +8,7 @@ use elasticsearch::indices::IndicesPutTemplateParts;
 use elasticsearch::{Elasticsearch, IndexParts};
 use std::error::Error;
 use std::sync::OnceLock;
-use redis::{Client, Connection, RedisConnectionInfo};
+//use redis::{Client, Connection, RedisConnectionInfo};
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
@@ -41,27 +41,27 @@ pub async fn get_elastic_client() -> Result<&'static Elasticsearch, Box<dyn Erro
         Ok(client)
     }
 }
-static REDIS_CON: OnceLock<Connection> = OnceLock::new();
+//static REDIS_CON: OnceLock<Client> = OnceLock::new();
 //10.10.25.11
-pub async fn get_redis_client() -> Result<&'static Connection, Box<dyn Error>> {
-    let elas = REDIS_CON.get();
-    if elas.is_some() {
-        Ok(elas.unwrap())
-    } else {
-        let config = redis_con::get_redis_con_config();
-        let elas = REDIS_CON.get_or_init(
-            || {
-                let info = RedisConnectionInfo {
-                    password: Some(config.pass.clone()),
-                    ..Default::default()
-                };
-                let client = Client::open(redis::ConnectionInfo {
-                    addr: redis::ConnectionAddr::Tcp(config.url.clone(), config.port),
-                    redis: info,
-                }).unwrap();
-                client.get_connection().unwrap()
-            });
-
-        Ok(elas)
-    }
-}
+//pub async fn get_redis_client() -> Result<&'static Client, Box<dyn Error>> {
+//    let elas = REDIS_CON.get();
+//    if elas.is_some() {
+//        Ok(elas.unwrap())
+//    } else {
+//        let config = redis_con::get_redis_con_config();
+//        let elas = REDIS_CON.get_or_init(
+//            || {
+//                let info = RedisConnectionInfo {
+//                    //password: Some(config.pass.clone()),
+//                    ..Default::default()
+//                };
+//                Client::open(redis::ConnectionInfo {
+//                    addr: redis::ConnectionAddr::Tcp(config.url.clone(), config.port),
+//                    redis: info,
+//                }).unwrap()
+//                //client.get_connection().unwrap()
+//            });
+//
+//        Ok(elas)
+//    }
+//}

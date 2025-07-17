@@ -9,9 +9,8 @@ services:
     ports:
       - "6380:6379"
     volumes:
-      - ./redis.conf:/usr/local/etc/redis/redis.conf  # кастомный конфиг
-      - ./redis_data:/data
-    command: redis-server /usr/local/etc/redis/redis.conf
+      - ./redis:/etc/redis/  # кастомный конфиг
+    command: redis-server --maxclients 15000
     environment:
       - REDIS_PASSWORD=bigboxpass  # опционально
     healthcheck:
