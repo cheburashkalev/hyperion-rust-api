@@ -1,13 +1,13 @@
 use std::fmt::Display;
 use std::sync::{Mutex};
 use std::time::{Duration, Instant};
-use rayon::iter::ParallelIterator;
+
 use crate::{configs, elastic_hyperion_redis};
 use actix_web::{Responder, get, web};
+
 use actix_web::web::{Bytes, Data};
 use elasticsearch::SearchParts;
 use moka::future::Cache;
-use rayon::iter::IntoParallelRefIterator;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tokio::time::sleep;
@@ -16,16 +16,16 @@ use crate::api::v2::history::load_data;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ReqQuery {
-    account: String,
-    skip: Option<i64>,
-    limit: Option<i64>,
+    contract: String,
+    block: Option<i64>,
+    fetch: Option<bool>,
 }
 impl Display for ReqQuery{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "get_created_accounts_{}_{}_{}", self.account,self.skip.unwrap_or(0),self.limit.unwrap_or(100))
+        write!(f, "get_abi_snapshot_{}_{}_{}", self.contract,self.block.unwrap_or(0),self.fetch.unwrap_or(false))
     }
 }
-#[get("/v2/history/get_created_accounts")]
+#[get("/v2/history/get_abi_snapshot")]
 async fn get(query: Query<ReqQuery>,cache:Data<Mutex<Cache<u32,Bytes>>>) -> impl Responder {
     let start = Instant::now();
     let key = gxhash::gxhash32(query.to_string().as_bytes(),12);
@@ -64,25 +64,20 @@ struct ElasticNewAccount {
 }
 async fn get_from_elastic(key:u32, query: Query<ReqQuery>,cache:Cache<u32,Bytes>,req_time: Instant) -> Bytes{
 
-    let index = configs::elastic_con::get_elastic_con_config().chain.clone() + "-action-*";
-    let actor = query.account.to_lowercase();
-    let from = query.skip.unwrap_or(0);
-    let limit = query.limit.unwrap_or(100);
-    let size: i64 = if limit > 100 { 100 } else { limit };
+    let index = configs::elastic_con::get_elastic_con_config().chain.clone() + "-abi-*";
+    let mut must = Vec::new();
+    must.push(json!({"term": {"account": query.contract}}));
+    if query.block.is_some(){
+        must.push(json!({"range": {"block": {"lte": query.block}}}));
+    }
     let req = json!(
                 {
                         "query": {
                             "bool": {
-                                "must": [
-                                    {"term": {"act.authorization.actor": actor}},
-                                    {"term": {"act.name": "newaccount"}},
-                                    {"term": {"act.account": "eosio"}}
-                                ]
+                                "must": must
                             }
                         },
-                        "sort": {
-                            "global_sequence": "desc"
-                        }
+                        "sort": [{"block": {"order": "desc"} }]
                 }
             );
 
@@ -90,8 +85,6 @@ async fn get_from_elastic(key:u32, query: Query<ReqQuery>,cache:Cache<u32,Bytes>
 
     let res = client
         .search(SearchParts::Index(&[index.as_str()]))
-        .size(size)
-        .from(from)
         .body(req)
         .send()
         .await
@@ -99,35 +92,39 @@ async fn get_from_elastic(key:u32, query: Query<ReqQuery>,cache:Cache<u32,Bytes>
 
     let res = res.json::<Value>().await.unwrap();
     let hits = res["hits"]["hits"].as_array().ok_or("Invalid response").unwrap();
-
-    let accounts = hits.par_iter()
-        .map(|hit| {
-            let hit: ElasticHit = serde_json::from_value(hit.clone()).unwrap();
-            let name = hit._source.act.data.newact
-                .or(hit._source.new_account.map(|x| x.newact))
-                .ok_or("Missing 'newact'")?;
-            Ok::<Value, &str>(json!({
-                "name": name,
-                "trx_id": hit._source.trx_id,
-                "timestamp": hit._source.timestamp,
-            }))
-        })
-        .collect::<Result<Vec<_>, _>>().unwrap();
-
-    // ... выполнение запроса ...
-    let string_res = json!({"accounts": accounts }).to_string();
+    let res = if hits.len() > 0{
+        let (key,value) = if query.fetch.unwrap_or(false){
+            ("abi",hits.get(0).unwrap()["_source"]["abi"].clone())
+        }else{
+            ("present",Value::Bool(true))
+        };
+        json!(
+            {
+                key: value,
+                "block_num": hits.get(0).unwrap()["_source"]["block"].clone()
+            }
+        )
+    }else{
+        json!(
+            {
+                "present": false,
+                "error": format!("abi not found for {} until block {}",query.contract,query.block.unwrap_or(0))
+            }
+        )
+    };
+    let string_res = res.to_string();
     let res = Bytes::from(string_res.clone());
-    cache.insert(key,res.clone()).await;
+    cache.insert(key, res.clone()).await;
     let cache = cache.clone();
     let key = key.clone();
     tokio::spawn(async move{
         sleep(Duration::from_secs(1)).await;
         cache.invalidate(&key).await;
     });
-
-    let (l,r) =string_res.split_at(1);
     let query_time =format!("{:?}",req_time.elapsed());
+    let (l,r) =string_res.split_at(1);
     let res = format!("{}\"query_time\":\"{}\",{}",l,query_time,r);
     let res = Bytes::from(res);
+    //println!("Request took {:?} for {}", start.elapsed(), query.account);
     res
 }

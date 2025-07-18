@@ -2,11 +2,8 @@ mod configs;
 mod elastic_hyperion_redis;
 mod api;
 
-use std::hash::Hash;
-use std::sync::{Arc, Mutex};
+use std::sync::{Mutex};
 use actix_web::{get, middleware, post, web, App, HttpResponse, HttpServer, Responder};
-use actix_storage_redis::{ConnectionAddr, ConnectionInfo, RedisBackend, RedisConnectionInfo};
-use actix_storage::Storage;
 use actix_web::web::{Bytes, Data};
 use moka::future::Cache;
 use redis::{Client, Connection};
@@ -83,16 +80,16 @@ async fn main() -> std::io::Result<()> {
     }
 
     // Создаем общий ресурс для приложения
-    let redis_data = web::Data::new(Mutex::new(redis_client));
+    //let redis_data = web::Data::new(Mutex::new(redis_client));
 
     println!("Starting server at http://127.0.0.1:8080");
-    let redis_cfg = configs::redis_con::get_redis_con_config();
-    let connection_info = ConnectionInfo{
-        addr: ConnectionAddr::Tcp(redis_cfg.url.clone(), redis_cfg.port),
-        redis: RedisConnectionInfo::default(),
-    };
-    let store = RedisBackend::connect(connection_info).await.unwrap();
-    let storage = Storage::build().expiry_store(store).finish();
+    //let redis_cfg = configs::redis_con::get_redis_con_config();
+    //let connection_info = ConnectionInfo{
+    //    addr: ConnectionAddr::Tcp(redis_cfg.url.clone(), redis_cfg.port),
+    //    redis: RedisConnectionInfo::default(),
+    //};
+    //let store = RedisBackend::connect(connection_info).await.unwrap();
+    //let storage = Storage::build().expiry_store(store).finish();
     HttpServer::new(move || {
         App::new()
             .app_data(Data::new(Mutex::new(cache.clone())))
@@ -103,6 +100,7 @@ async fn main() -> std::io::Result<()> {
             .service(hello)
             .service(echo)
             .service(api::v2::history::get_created_accounts::get)
+            .service(api::v2::history::get_abi_snapshot::get)
             .route("/hey", web::get().to(manual_hello))
     })
         .bind(("127.0.0.1", 8080))?
