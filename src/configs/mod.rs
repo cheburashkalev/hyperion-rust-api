@@ -1,5 +1,6 @@
 pub mod elastic_con;
 pub mod redis_con;
+pub mod nodeos;
 
 use std::error::Error;
 use std::fs;

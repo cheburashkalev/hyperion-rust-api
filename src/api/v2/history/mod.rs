@@ -6,6 +6,8 @@ use moka::future::Cache;
 
 pub mod get_created_accounts;
 pub mod get_abi_snapshot;
+pub mod get_actions;
+
 pub async fn load_data<'c, 'b, 'a, 'd, F, Fut, T>(
     func: F,
     query: Query<T>,
@@ -15,7 +17,7 @@ pub async fn load_data<'c, 'b, 'a, 'd, F, Fut, T>(
 ) -> HttpResponse<Bytes>
 where
     F: Fn(u32, Query<T>, Cache<u32, Bytes>, Instant) -> Fut,
-    Fut: Future<Output = Bytes> + 'static,
+    Fut: Future<Output = Result<Bytes,String>> + 'static,
     T: 'static,
 {
     if cache.contains_key(&key) {
@@ -31,8 +33,11 @@ where
             return HttpResponse::with_body(StatusCode::OK, Bytes::from(res));
         }
     }
-
-    HttpResponse::with_body(StatusCode::OK, func(key, query, cache, start).await)
+    let res = func(key, query, cache, start).await;
+    match res{
+        Ok(r)=>HttpResponse::with_body(StatusCode::OK,r),
+        Err(e)=>HttpResponse::with_body(StatusCode::BAD_REQUEST,Bytes::from(e))
+    }
 }
 pub async fn load_data2<F,T,Fut>(func: F,query: &Query<T>,cache: &Cache<u32,Bytes>,key: &u32,start: &Instant) -> HttpResponse<Bytes>
 where

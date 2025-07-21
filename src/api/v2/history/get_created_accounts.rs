@@ -62,7 +62,7 @@ struct ElasticActData {
 struct ElasticNewAccount {
     newact: String,
 }
-async fn get_from_elastic(key:u32, query: Query<ReqQuery>,cache:Cache<u32,Bytes>,req_time: Instant) -> Bytes{
+async fn get_from_elastic(key:u32, query: Query<ReqQuery>,cache:Cache<u32,Bytes>,req_time: Instant) -> Result<Bytes,String>{
 
     let index = configs::elastic_con::get_elastic_con_config().chain.clone() + "-action-*";
     let actor = query.account.to_lowercase();
@@ -129,5 +129,5 @@ async fn get_from_elastic(key:u32, query: Query<ReqQuery>,cache:Cache<u32,Bytes>
     let query_time =format!("{:?}",req_time.elapsed());
     let res = format!("{}\"query_time\":\"{}\",{}",l,query_time,r);
     let res = Bytes::from(res);
-    res
+    Ok(res)
 }

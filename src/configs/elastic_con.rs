@@ -9,7 +9,20 @@ pub struct ElasticConConfig {
     pub login: String,
     pub pass: String,
     pub es_replicas: Option<u32>,
-    pub chain: String
+    pub chain: String,
+    pub get_actions: Option<i64>,
+    pub get_blocks: Option<u32>,
+    pub get_created_accounts: Option<u32>,
+    pub get_deltas: Option<u32>,
+    pub get_key_accounts: Option<u32>,
+    pub get_links: Option<u32>,
+    pub get_proposals: Option<u32>,
+    pub get_transfers: Option<u32>,
+    pub get_trx_actions: Option<u32>,
+    pub get_tokens: Option<u32>,
+    pub get_top_holders: Option<u32>,
+    pub get_voters: Option<u32>,
+
 }
 impl Default for ElasticConConfig {
     fn default() -> Self {
@@ -19,7 +32,20 @@ impl Default for ElasticConConfig {
             login: "elastic".to_string(),
             pass: "rILpAx=E8ZDhA7S5OF3+".to_string(),
             es_replicas: Some(0),
-            chain: "gf".to_string()
+            chain: "gf".to_string(),
+            get_actions: Some(1000),
+            get_voters: Some(100),
+            get_links: Some(1000),
+            get_deltas: Some(1000),
+            get_trx_actions: Some(200),
+
+            get_transfers: None,
+            get_blocks: None,
+            get_created_accounts: None,
+            get_key_accounts: None,
+            get_proposals: None,
+            get_tokens: None,
+            get_top_holders: None,
         }
     }
 }

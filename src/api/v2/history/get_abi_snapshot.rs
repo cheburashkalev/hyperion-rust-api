@@ -33,36 +33,7 @@ async fn get(query: Query<ReqQuery>,cache:Data<Mutex<Cache<u32,Bytes>>>) -> impl
     load_data(get_from_elastic,query,cache,key,start).await
 
 }
-#[derive(serde::Deserialize)]
-struct ElasticHit {
-    _source: ElasticSource,
-}
-
-#[derive(serde::Deserialize)]
-struct ElasticSource {
-    act: ElasticAct,
-    #[serde(rename = "@newaccount")]
-    new_account: Option<ElasticNewAccount>,
-    trx_id: String,
-    #[serde(rename = "@timestamp")]
-    timestamp: String,
-}
-
-#[derive(serde::Deserialize)]
-struct ElasticAct {
-    data: ElasticActData,
-}
-
-#[derive(serde::Deserialize)]
-struct ElasticActData {
-    newact: Option<String>,
-}
-
-#[derive(serde::Deserialize)]
-struct ElasticNewAccount {
-    newact: String,
-}
-async fn get_from_elastic(key:u32, query: Query<ReqQuery>,cache:Cache<u32,Bytes>,req_time: Instant) -> Bytes{
+async fn get_from_elastic(key:u32, query: Query<ReqQuery>,cache:Cache<u32,Bytes>,req_time: Instant) -> Result<Bytes,String>{
 
     let index = configs::elastic_con::get_elastic_con_config().chain.clone() + "-abi-*";
     let mut must = Vec::new();
@@ -126,5 +97,5 @@ async fn get_from_elastic(key:u32, query: Query<ReqQuery>,cache:Cache<u32,Bytes>
     let res = format!("{}\"query_time\":\"{}\",{}",l,query_time,r);
     let res = Bytes::from(res);
     //println!("Request took {:?} for {}", start.elapsed(), query.account);
-    res
+    Ok(res)
 }
