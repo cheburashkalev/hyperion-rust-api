@@ -27,35 +27,6 @@ async fn get(query: Query<ReqQuery>, cache: Data<Mutex<Cache<u32, Bytes>>>) -> i
     let cache = cache.lock().unwrap().clone();
     load_data(get_from_elastic, query, cache, key, start).await
 }
-#[derive(serde::Deserialize)]
-struct ElasticHit {
-    _source: ElasticSource,
-}
-
-#[derive(serde::Deserialize)]
-struct ElasticSource {
-    act: ElasticAct,
-    #[serde(rename = "@newaccount")]
-    new_account: Option<ElasticNewAccount>,
-    trx_id: String,
-    #[serde(rename = "@timestamp")]
-    timestamp: String,
-}
-
-#[derive(serde::Deserialize)]
-struct ElasticAct {
-    data: ElasticActData,
-}
-
-#[derive(serde::Deserialize)]
-struct ElasticActData {
-    newact: Option<String>,
-}
-
-#[derive(serde::Deserialize)]
-struct ElasticNewAccount {
-    newact: String,
-}
 const REQUEST_BODY_BLOCK: &str = "{\"block_num_or_id\": \"1\"}";
 const REQUEST_BODY_ACCOUNT: &str = "{\"account_name\": \"";
 async fn get_from_elastic(
