@@ -58,6 +58,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::v2::history::get_created_accounts::get)
             .service(api::v2::history::get_abi_snapshot::get)
             .service(api::v2::history::get_actions::get)
+            .service(api::v2::history::get_creator::get)
             .route("/hey", web::get().to(manual_hello))
     })
         .bind(("127.0.0.1", 8080))?

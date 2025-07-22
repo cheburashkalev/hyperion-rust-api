@@ -7,6 +7,7 @@ use moka::future::Cache;
 pub mod get_created_accounts;
 pub mod get_abi_snapshot;
 pub mod get_actions;
+pub mod get_creator;
 
 pub async fn load_data<'c, 'b, 'a, 'd, F, Fut, T>(
     func: F,
