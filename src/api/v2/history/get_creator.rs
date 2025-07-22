@@ -71,7 +71,7 @@ async fn get_from_elastic(
                 "{}/v1/chain/get_block",
                 configs::nodeos::get_node_os_con_config().http
             ))
-            .json(REQUEST_BODY_BLOCK)
+            .json(&serde_json::from_str::<Value>(REQUEST_BODY_BLOCK).unwrap())
             .send()
             .await;
         if raw_response_block.is_err() {
@@ -83,7 +83,9 @@ async fn get_from_elastic(
         if raw_parsed_response_block.is_err() {
             return Err(raw_parsed_response_block.unwrap_err().to_string());
         }
+
         let response_block = raw_parsed_response_block.unwrap();
+        println!("{}",response_block.to_string());
         let string_res = json!({
             "timestamp": response_block["timestamp"],
             "creator": "__self__",
@@ -150,7 +152,7 @@ async fn get_from_elastic(
                 "{}/v1/chain/get_account",
                 configs::nodeos::get_node_os_con_config().http
             ))
-            .json(format!("{}{}\"}}",REQUEST_BODY_ACCOUNT,query.account).as_bytes())
+            .json(&serde_json::from_str::<Value>(&*format!("{}{}\"}}", REQUEST_BODY_ACCOUNT, query.account).to_string()).unwrap())
             .send()
             .await;
         match raw_response_account_info {
