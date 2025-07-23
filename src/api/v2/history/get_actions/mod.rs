@@ -81,7 +81,7 @@ async fn get_from_elastic(
         ),
     };
     let max_actions = configs::elastic_con::get_elastic_con_config().get_actions;
-    let r = get_skip_limit(&parsed_query, max_actions.unwrap_or(200));
+    let r = get_skip_limit(&parsed_query, max_actions.unwrap_or(1000));
     if r.is_err() {
         return Err(r.unwrap_err());
     }

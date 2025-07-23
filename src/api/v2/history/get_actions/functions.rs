@@ -113,7 +113,6 @@ fn add_range_query(query_struct: &mut QueryStruct,prop: &str,pkey: &str,query: &
 use chrono::{DateTime};
 use gxhash::{HashSet};
 use serde::{Deserialize, Serialize};
-use crate::configs;
 
 pub fn apply_time_filter(query: &Value, query_struct: &mut QueryStruct) -> Result<(), String> {
     let after = query.get("after").and_then(|v| v.as_str());
@@ -377,8 +376,8 @@ pub fn get_skip_limit(query: &ReqQuery,max_limit:i64) -> Result<(i64, i64),Strin
             return Err("skip is above maximum internal limit: 10000. please limit your search scope or use pagination with before/after parameters".to_string());
         }
     }
-    let limit = query.limit.clone().unwrap_or(String::from("200"));
-    let limit = limit.parse::<i64>().unwrap_or(configs::elastic_con::get_elastic_con_config().get_actions.unwrap_or(200));
+    let limit = query.limit.clone().unwrap_or(String::from("10"));
+    let limit = limit.parse::<i64>().unwrap();
    if limit > max_limit{
         return Err(format!("limit too big, maximum: {}",max_limit));
     }
