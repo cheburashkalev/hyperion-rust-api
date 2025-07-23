@@ -38,7 +38,7 @@ where
     let res = func(key, query, cache, start).await;
     match res{
         Ok(r)=>HttpResponse::with_body(StatusCode::OK,r),
-        Err(e)=>HttpResponse::with_body(StatusCode::BAD_REQUEST,Bytes::from(e))
+        Err(e)=>HttpResponse::with_body(StatusCode::INTERNAL_SERVER_ERROR,Bytes::from(e))
     }
 }
 pub async fn load_data2<F,T,Fut>(func: F,query: &Query<T>,cache: &Cache<u32,Bytes>,key: &u32,start: &Instant) -> HttpResponse<Bytes>

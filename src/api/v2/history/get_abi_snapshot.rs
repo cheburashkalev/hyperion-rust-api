@@ -54,14 +54,26 @@ async fn get_from_elastic(key:u32, query: Query<ReqQuery>,cache:Cache<u32,Bytes>
 
     let client = elastic_hyperion_redis::get_elastic_client().await.unwrap();
 
-    let res = client
+    let res_es = client
         .search(SearchParts::Index(&[index.as_str()]))
         .body(req)
         .send()
         .await
         .unwrap();
-
-    let res = res.json::<Value>().await.unwrap();
+    if(!res_es.status_code().is_success()){
+        let res = res_es.json::<Value>().await.unwrap();
+        println!(
+            "res: {} \n",
+            serde_json::to_string_pretty(&res).unwrap().as_str()
+        );
+        let err = Err(json!({
+            "statusCode": 500,
+            "error": "Internal Server Error",
+            "message": res["error"]["reason"]
+        }).to_string());
+        return err;
+    }
+    let res = res_es.json::<Value>().await.unwrap();
     let hits = res["hits"]["hits"].as_array().ok_or("Invalid response").unwrap();
     let res = if hits.len() > 0{
         let (key,value) = if query.fetch.unwrap_or(false){

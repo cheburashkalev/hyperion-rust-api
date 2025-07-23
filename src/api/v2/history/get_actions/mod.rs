@@ -136,16 +136,14 @@ async fn get_from_elastic(
         .unwrap();
 
     if(!res_es.status_code().is_success()){
-        let status_code = res_es.status_code().as_u16();
-
         let res = res_es.json::<Value>().await.unwrap();
         println!(
             "res: {} \n",
             serde_json::to_string_pretty(&res).unwrap().as_str()
         );
         let err = Err(json!({
-            "statusCode": status_code,
-            "error": "Bad Request",
+            "statusCode": 500,
+            "error": "Internal Server Error",
             "message": res["error"]["reason"]
         }).to_string());
         return err;
@@ -170,7 +168,7 @@ async fn get_from_elastic(
     let check_lib: bool = parsed_query
         .check_lib
         .clone()
-        .unwrap()
+        .unwrap_or("false".to_string())
         .parse()
         .unwrap_or(false);
     if check_lib {

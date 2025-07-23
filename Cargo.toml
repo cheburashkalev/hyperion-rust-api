@@ -4,8 +4,6 @@ version = "0.1.0"
 edition = "2024"
 resolver = "3"
 
-[b]
-
 [dependencies]
 tokio = { version = "1.0.0", features = ["full"] }
 rayon = "1.10.0"
@@ -19,3 +17,4 @@ elasticsearch = "9.0.0-alpha.1"
 env_logger = "0.11.8"
 chrono = "0.4.41"
 reqwest = "0.12.22"
+futures-util = "0.3.31"

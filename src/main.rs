@@ -2,11 +2,13 @@ mod configs;
 mod elastic_hyperion_redis;
 mod api;
 mod help_structs;
+mod middleware;
 
 use std::sync::{Mutex};
-use actix_web::{get, middleware, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use actix_web::web::{Bytes, Data};
 use moka::future::Cache;
+use crate::middleware::{NotFoundMiddleware};
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -47,21 +49,22 @@ async fn main() -> std::io::Result<()> {
     //let store = RedisBackend::connect(connection_info).await.unwrap();
     //let storage = Storage::build().expiry_store(store).finish();
     HttpServer::new(move || {
-        App::new()
-            .app_data(Data::new(Mutex::new(cache.clone())))
+            App::new()
+                .app_data(Data::new(Mutex::new(cache.clone())))
 
-            //.app_data(Data::new(storage.clone()))
-            // enable logger
-            .wrap(middleware::Logger::default())
-            .service(hello)
-            .service(echo)
-            .service(api::v2::history::get_created_accounts::get)
-            .service(api::v2::history::get_abi_snapshot::get)
-            .service(api::v2::history::get_actions::get)
-            .service(api::v2::history::get_creator::get)
-            .service(api::v2::history::get_block::get)
-            .route("/hey", web::get().to(manual_hello))
-    })
+                //.app_data(Data::new(storage.clone()))
+                // enable logger
+                //.wrap(actix_web::middleware::Logger::default())
+                .wrap(NotFoundMiddleware)
+                .service(hello)
+                .service(echo)
+                .service(api::v2::history::get_created_accounts::get)
+                .service(api::v2::history::get_abi_snapshot::get)
+                .service(api::v2::history::get_actions::get)
+                .service(api::v2::history::get_creator::get)
+                .service(api::v2::history::get_block::get)
+                .route("/hey", web::get().to(manual_hello))
+        })
         .bind(("127.0.0.1", 8080))?
         .run()
         .await
